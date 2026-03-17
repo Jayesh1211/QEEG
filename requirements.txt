@@ -1,0 +1,14 @@
+streamlit
+pandas
+numpy
+scipy
+scikit-learn
+joblib
+tensorflow
+xgboost
+lightgbm
+qiskit
+qiskit-machine-learning
+pennylane
+torch
+plotly

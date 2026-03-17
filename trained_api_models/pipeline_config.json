@@ -1,0 +1,51 @@
+{
+  "fs": 250,
+  "window_size": 250,
+  "step_size": 125,
+  "selected_channels": [
+    "Fp1",
+    "Fp2",
+    "F3",
+    "Fz",
+    "F4",
+    "Cz",
+    "Pz",
+    "Oz"
+  ],
+  "n_channels": 8,
+  "label_map": {
+    "calm": 0,
+    "stress": 1
+  },
+  "label_map_inverse": {
+    "0": "calm",
+    "1": "stress"
+  },
+  "n_quantum_features": 8,
+  "target_seed": 42,
+  "bandpass_lowcut": 1,
+  "bandpass_highcut": 50,
+  "bandpass_order": 4,
+  "cnn_extractor_file": "cnn_extractor_seed_42.keras",
+  "global_scaler_file": "global_eeg_scaler.pkl",
+  "model_files": {
+    "Classical_SVM": "Classical_SVM.pkl",
+    "XGBoost": "XGBoost.pkl",
+    "LightGBM": "LightGBM.pkl",
+    "RandomForest": "RandomForest.pkl",
+    "Voting_Ensemble": "Voting_Ensemble.pkl",
+    "Stacking_Ensemble": "Stacking_Ensemble.pkl",
+    "QSVM": "QSVM.pkl",
+    "VQC": "VQC.pkl"
+  },
+  "quantum_models": [
+    "QSVM",
+    "VQC"
+  ],
+  "phase2_inference_order": [
+    "1. bandpass_filter(raw_window, fs, lowcut, highcut, order)",
+    "2. global_scaler.transform(window.reshape(-1, n_channels)).reshape(1, window_size, n_channels)",
+    "3. cnn_extractor.predict(scaled_window)  \u2192  8-D feature vector",
+    "4. model.predict(feature_vector)          \u2192  0=calm, 1=stress"
+  ]
+}

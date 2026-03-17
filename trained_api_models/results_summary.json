@@ -1,0 +1,22 @@
+{
+  "accuracies": {
+    "Classical_SVM": 0.73938,
+    "XGBoost": 0.73436,
+    "LightGBM": 0.742543,
+    "RandomForest": 0.738423,
+    "Voting_Ensemble": 0.741731,
+    "Stacking_Ensemble": 0.74234,
+    "QSVM": 0.705,
+    "VQC": 0.745
+  },
+  "sorted_by_accuracy": {
+    "VQC": 0.745,
+    "LightGBM": 0.742543,
+    "Stacking_Ensemble": 0.74234,
+    "Voting_Ensemble": 0.741731,
+    "Classical_SVM": 0.73938,
+    "RandomForest": 0.738423,
+    "XGBoost": 0.73436,
+    "QSVM": 0.705
+  }
+}

@@ -1,4 +1,3 @@
-# streamlit_app.py
 import os
 import io
 import json
@@ -9,8 +8,9 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
+from datetime import timedelta
 
-# Import helper functions from phase2_1_updated (avoid main())
+# Import helper functions from phase2_1_updated
 from phase2_1_updated import (
     load_config,
     load_preprocessors,
@@ -24,7 +24,7 @@ from phase2_1_updated import (
     fmt_time,
 )
 
-# Import model classes so joblib can deserialise .pkl files
+# Import model classes for deserialisation
 try:
     from API import (
         EEGClassicalSVM,
@@ -41,7 +41,7 @@ except ImportError as e:
     st.sidebar.warning(f"Some model classes could not be imported: {e}")
 
 # -------------------------------------------------------------------
-# Page configuration
+# Page config
 # -------------------------------------------------------------------
 st.set_page_config(
     page_title="🧠 EEG Stress/Calm Analyzer",
@@ -50,48 +50,65 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .session-banner {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        font-weight: bold;
+        text-align: center;
+        font-size: 1.5rem;
+    }
+    .calm-banner { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .stress-banner { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .mixed-banner { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .metric-card {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # -------------------------------------------------------------------
-# Cache artifact loading (config, scaler, CNN)
+# Load artifacts (cached)
 # -------------------------------------------------------------------
 @st.cache_resource
 def load_artifacts(model_dir):
-    """Load config, scaler and CNN extractor from model_dir."""
     cfg = load_config(model_dir)
     scaler, cnn = load_preprocessors(model_dir, cfg)
     return cfg, scaler, cnn
 
 # -------------------------------------------------------------------
-# Sidebar: model selection & file upload
+# Sidebar
 # -------------------------------------------------------------------
 st.sidebar.title("🧠 EEG Analyzer")
 st.sidebar.markdown("---")
 
-# Model directory (adjust if needed)
 MODEL_DIR = "trained_api_models"
 if not os.path.isdir(MODEL_DIR):
     st.sidebar.error(f"Model directory '{MODEL_DIR}' not found.")
     st.stop()
 
-# Load artifacts
 with st.spinner("Loading preprocessing artifacts..."):
     cfg, scaler, cnn = load_artifacts(MODEL_DIR)
 
-# Build list of available models from pipeline_config.json
 model_files = cfg.get("model_files", {})
 available_models = {
     name: os.path.join(MODEL_DIR, fname)
     for name, fname in model_files.items()
     if os.path.exists(os.path.join(MODEL_DIR, fname))
 }
-
 if not available_models:
-    st.sidebar.error("No model files found in the model directory.")
+    st.sidebar.error("No model files found.")
     st.stop()
 
-# Quantum model list (for tagging)
 quantum_models = set(cfg.get("quantum_models", []))
 
-# Model selector
 selected_model_name = st.sidebar.selectbox(
     "Select a trained model",
     options=list(available_models.keys()),
@@ -99,14 +116,12 @@ selected_model_name = st.sidebar.selectbox(
 )
 model_path = available_models[selected_model_name]
 
-# File uploader
 uploaded_file = st.sidebar.file_uploader(
     "Upload raw EEG CSV",
     type=["csv"],
     help=f"Required columns: {cfg['selected_channels']}",
 )
 
-# Run button
 run_pressed = st.sidebar.button("🚀 Run Analysis", type="primary")
 
 st.sidebar.markdown("---")
@@ -131,54 +146,44 @@ if not run_pressed:
     st.stop()
 
 # -------------------------------------------------------------------
-# Run analysis when button is pressed
+# Run analysis
 # -------------------------------------------------------------------
 with st.spinner("Processing..."):
     try:
-        # 1. Load raw data from uploaded file (directly from memory)
+        # Read uploaded file
         file_content = uploaded_file.getvalue().decode('utf-8')
         df = pd.read_csv(io.StringIO(file_content))
 
-        # Check required channels
         missing = [ch for ch in cfg["selected_channels"] if ch not in df.columns]
         if missing:
-            st.error(
-                f"CSV is missing required channel(s): {missing}\n"
-                f"Required: {cfg['selected_channels']}\n"
-                f"Found: {list(df.columns)}"
-            )
+            st.error(f"Missing channels: {missing}")
             st.stop()
 
         raw = df[cfg["selected_channels"]].values.astype(np.float32)
-        st.info(
-            f"CSV loaded: {raw.shape[0]} samples "
-            f"({raw.shape[0] / cfg['fs']:.1f} s) × {raw.shape[1]} channels"
-        )
+        st.info(f"Loaded {raw.shape[0]} samples ({raw.shape[0]/cfg['fs']:.1f} s) × {raw.shape[1]} channels")
 
-        # 2. Preprocess: filter → windows → scale → CNN features
+        # Preprocess
         windows_scaled, features_8D = preprocess(raw, cfg, scaler, cnn)
 
-        # 3. Load the selected model
+        # Load model
         with st.spinner("Loading model..."):
             clf = joblib.load(model_path)
 
-        # 4. Run inference
+        # Inference
         label_map_inv = {int(k): v for k, v in cfg["label_map_inverse"].items()}
         step_size = cfg["step_size"]
         fs = cfg["fs"]
 
         raw_preds = clf.predict(features_8D)
         raw_labels = [label_map_inv[int(p)] for p in raw_preds]
-        labels = smooth_labels(raw_labels, window=20)  # optional smoothing
+        labels = smooth_labels(raw_labels, window=20)
 
-        # 5. Compute statistics
         duration = compute_duration_stats(labels, step_size, fs)
         segments = detect_segments(labels, step_size, fs)
         session_type = classify_session(duration["calm_pct"], duration["stress_pct"])
         dominant = "calm" if duration["calm_pct"] >= duration["stress_pct"] else "stress"
         transitions = len(segments) - 1
 
-        # 6. Peak segments
         longest_calm = (find_longest_block(segments, "calm") or {}).get("duration_s", 0)
         longest_stress = (find_longest_block(segments, "stress") or {}).get("duration_s", 0)
         peak_calm = find_peak_seg(segments, "calm")
@@ -209,54 +214,83 @@ with st.spinner("Processing..."):
 # -------------------------------------------------------------------
 st.success("Analysis complete!")
 
-# ----- Top metrics -----
+# ----- Session type banner -----
+banner_class = {
+    "CALM": "calm-banner",
+    "STRESS": "stress-banner",
+    "MIXED": "mixed-banner"
+}.get(session_type, "")
+st.markdown(
+    f'<div class="session-banner {banner_class}">SESSION TYPE: {session_type}</div>',
+    unsafe_allow_html=True
+)
+
+# ----- Top metrics in columns -----
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    st.metric("Session Type", result["session_type"])
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+    st.metric("Dominant State", dominant.capitalize())
+    st.markdown('</div>', unsafe_allow_html=True)
 with col2:
-    st.metric("Dominant State", result["dominant_state"].capitalize())
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+    st.metric("Total Time", fmt_time(duration['total_s']))
+    st.markdown('</div>', unsafe_allow_html=True)
 with col3:
-    st.metric("Total Duration", f"{fmt_time(duration['total_s'])}")
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+    st.metric("State Switches", transitions)
+    st.markdown('</div>', unsafe_allow_html=True)
 with col4:
-    st.metric("State Switches", result["transitions"])
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+    st.metric("Calm", f"{duration['calm_pct']:.0f}%")
+    st.markdown('</div>', unsafe_allow_html=True)
 with col5:
-    st.metric("Calm / Stress", f"{duration['calm_pct']:.0f}% / {duration['stress_pct']:.0f}%")
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+    st.metric("Stress", f"{duration['stress_pct']:.0f}%")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# ----- Pie chart for distribution -----
+# ----- Pie chart -----
 fig_pie = px.pie(
     names=["Calm", "Stress"],
     values=[duration["calm_s"], duration["stress_s"]],
-    color_discrete_sequence=["#66c2a5", "#fc8d62"],
+    color_discrete_sequence=["#2ecc71", "#e74c3c"],
     title="Calm / Stress Distribution",
 )
+fig_pie.update_traces(textposition='inside', textinfo='percent+label')
 st.plotly_chart(fig_pie, use_container_width=True)
 
-# ----- Gantt chart of segments -----
+# ----- Gantt chart (fixed) -----
 if segments:
     df_seg = pd.DataFrame(segments)
-    df_seg["Start"] = df_seg["start_s"].apply(fmt_time)
-    df_seg["End"] = df_seg["end_s"].apply(fmt_time)
-    df_seg["Duration"] = df_seg["duration_s"].apply(lambda x: f"{x:.1f}s")
-    df_seg["State"] = df_seg["state"].str.upper()
-    df_seg["Consistency"] = df_seg["consistency"].apply(lambda x: f"{x*100:.1f}%")
+    # Convert seconds to datetime for proper timeline display
+    base_time = pd.Timestamp('1970-01-01')
+    df_seg['start_dt'] = base_time + pd.to_timedelta(df_seg['start_s'], unit='s')
+    df_seg['end_dt'] = base_time + pd.to_timedelta(df_seg['end_s'], unit='s')
+    df_seg['duration_str'] = df_seg['duration_s'].apply(lambda x: str(timedelta(seconds=int(x))))
+    df_seg['State'] = df_seg['state'].str.upper()
+    df_seg['consistency_pct'] = (df_seg['consistency'] * 100).round(1)
 
     fig_gantt = px.timeline(
         df_seg,
-        x_start="start_s",
-        x_end="end_s",
+        x_start="start_dt",
+        x_end="end_dt",
         y="State",
         color="State",
-        color_discrete_map={"CALM": "#66c2a5", "STRESS": "#fc8d62"},
+        color_discrete_map={"CALM": "#2ecc71", "STRESS": "#e74c3c"},
         hover_data={
-            "start_s": False,
-            "end_s": False,
-            "Duration": True,
-            "Consistency": True,
+            "start_dt": False,
+            "end_dt": False,
+            "duration_str": True,
+            "consistency_pct": True,
         },
         title="Detected Segments Over Time",
+        labels={"duration_str": "Duration", "consistency_pct": "Consistency (%)"}
     )
     fig_gantt.update_yaxes(categoryorder="total ascending")
-    fig_gantt.update_layout(xaxis_title="Time (s)")
+    fig_gantt.update_layout(
+        xaxis_title="Time (MM:SS)",
+        xaxis_tickformat="%M:%S",
+        hovermode="closest"
+    )
     st.plotly_chart(fig_gantt, use_container_width=True)
 
 # ----- Peak periods -----
@@ -283,8 +317,21 @@ if peak_calm or peak_stress:
 # ----- Segment table -----
 st.subheader("📋 Segment Details")
 if segments:
-    df_display = df_seg[["Start", "End", "Duration", "State", "Consistency"]]
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    df_display = df_seg[["start_dt", "end_dt", "duration_str", "State", "consistency_pct"]].copy()
+    df_display["Start"] = df_display["start_dt"].dt.strftime("%M:%S")
+    df_display["End"] = df_display["end_dt"].dt.strftime("%M:%S")
+    df_display = df_display[["Start", "End", "duration_str", "State", "consistency_pct"]]
+    df_display.columns = ["Start", "End", "Duration", "State", "Consistency (%)"]
+    st.dataframe(
+        df_display,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Consistency (%)": st.column_config.ProgressColumn(
+                "Consistency (%)", format="%.1f%%", min_value=0, max_value=100
+            )
+        }
+    )
 
 # ----- Download JSON -----
 st.download_button(

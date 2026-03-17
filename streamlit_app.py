@@ -1,17 +1,30 @@
 # streamlit_app.py
 import os
+import io
 import json
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 from pathlib import Path
 
-# -------------------------------------------------------------------
-#  Import all model classes so joblib can deserialise .pkl files
-# -------------------------------------------------------------------
+# Import helper functions from phase2_1_updated (avoid main())
+from phase2_1_updated import (
+    load_config,
+    load_preprocessors,
+    preprocess,
+    smooth_labels,
+    detect_segments,
+    compute_duration_stats,
+    classify_session,
+    find_longest_block,
+    find_peak_seg,
+    fmt_time,
+)
+
+# Import model classes so joblib can deserialise .pkl files
 try:
     from API import (
         EEGClassicalSVM,
@@ -25,27 +38,10 @@ try:
         HybridVQC_TorchModule,
     )
 except ImportError as e:
-    st.sidebar.error(f"Could not import all model classes: {e}. Quantum models may not work.")
+    st.sidebar.warning(f"Some model classes could not be imported: {e}")
 
 # -------------------------------------------------------------------
-#  Import helper functions from phase2_1_updated (avoid main())
-# -------------------------------------------------------------------
-from phase2_1_updated import (
-    load_config,
-    load_preprocessors,
-    load_csv,
-    preprocess,
-    smooth_labels,
-    detect_segments,
-    compute_duration_stats,
-    classify_session,
-    find_longest_block,
-    find_peak_seg,
-    fmt_time,
-)
-
-# -------------------------------------------------------------------
-#  Page configuration
+# Page configuration
 # -------------------------------------------------------------------
 st.set_page_config(
     page_title="🧠 EEG Stress/Calm Analyzer",
@@ -55,7 +51,7 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------------
-#  Cache artifact loading (config, scaler, CNN)
+# Cache artifact loading (config, scaler, CNN)
 # -------------------------------------------------------------------
 @st.cache_resource
 def load_artifacts(model_dir):
@@ -65,7 +61,7 @@ def load_artifacts(model_dir):
     return cfg, scaler, cnn
 
 # -------------------------------------------------------------------
-#  Sidebar: model selection & file upload
+# Sidebar: model selection & file upload
 # -------------------------------------------------------------------
 st.sidebar.title("🧠 EEG Analyzer")
 st.sidebar.markdown("---")
@@ -121,7 +117,7 @@ st.sidebar.info(
 )
 
 # -------------------------------------------------------------------
-#  Main area
+# Main area
 # -------------------------------------------------------------------
 st.title("🧠 EEG Stress / Calm Analysis")
 st.markdown("Upload a raw EEG recording and select a model to begin.")
@@ -135,12 +131,29 @@ if not run_pressed:
     st.stop()
 
 # -------------------------------------------------------------------
-#  Run analysis when button is pressed
+# Run analysis when button is pressed
 # -------------------------------------------------------------------
 with st.spinner("Processing..."):
     try:
-        # 1. Load raw data from uploaded file
-        raw = load_csv(uploaded_file, cfg["selected_channels"])
+        # 1. Load raw data from uploaded file (directly from memory)
+        file_content = uploaded_file.getvalue().decode('utf-8')
+        df = pd.read_csv(io.StringIO(file_content))
+
+        # Check required channels
+        missing = [ch for ch in cfg["selected_channels"] if ch not in df.columns]
+        if missing:
+            st.error(
+                f"CSV is missing required channel(s): {missing}\n"
+                f"Required: {cfg['selected_channels']}\n"
+                f"Found: {list(df.columns)}"
+            )
+            st.stop()
+
+        raw = df[cfg["selected_channels"]].values.astype(np.float32)
+        st.info(
+            f"CSV loaded: {raw.shape[0]} samples "
+            f"({raw.shape[0] / cfg['fs']:.1f} s) × {raw.shape[1]} channels"
+        )
 
         # 2. Preprocess: filter → windows → scale → CNN features
         windows_scaled, features_8D = preprocess(raw, cfg, scaler, cnn)
@@ -161,7 +174,6 @@ with st.spinner("Processing..."):
         # 5. Compute statistics
         duration = compute_duration_stats(labels, step_size, fs)
         segments = detect_segments(labels, step_size, fs)
-        # (optional segment merging, disabled here for simplicity)
         session_type = classify_session(duration["calm_pct"], duration["stress_pct"])
         dominant = "calm" if duration["calm_pct"] >= duration["stress_pct"] else "stress"
         transitions = len(segments) - 1
@@ -193,7 +205,7 @@ with st.spinner("Processing..."):
         st.stop()
 
 # -------------------------------------------------------------------
-#  Display results
+# Display results
 # -------------------------------------------------------------------
 st.success("Analysis complete!")
 

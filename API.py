@@ -15,7 +15,7 @@ import xgboost as xgb
 import lightgbm as lgb
 
 # Quantum Imports (Qiskit)
-from qiskit.circuit.library import zz_feature_map, ZZFeatureMap
+from qiskit.circuit.library import ZZFeatureMap
 from qiskit_machine_learning.kernels import FidelityQuantumKernel
 from qiskit_machine_learning.algorithms import QSVC
 

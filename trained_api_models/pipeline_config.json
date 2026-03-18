@@ -38,6 +38,9 @@
     "QSVM": "QSVM.pkl",
     "VQC": "VQC.pkl"
   },
+  "slow_models": {
+    "QSVM": 200
+  },
   "quantum_models": [
     "QSVM",
     "VQC"

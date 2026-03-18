@@ -247,7 +247,7 @@ with st.sidebar:
     run_pressed = st.button("🚀 **Run Analysis**", type="primary", use_container_width=True)
 
     st.markdown("---")
-    st.caption("✨ Built with Streamlit & ❤️")
+    st.caption("✨ PART OF ULTIMATE MAHABHARAT❤️")
 
 # -------------------------------------------------------------------
 # MAIN CONTENT

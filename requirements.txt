@@ -7,7 +7,7 @@ joblib
 tensorflow
 xgboost
 lightgbm
-qiskit==1.4.0
+qiskit==1.4.5
 qiskit-machine-learning==0.8.0
 pennylane
 torch

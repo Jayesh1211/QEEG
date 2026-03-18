@@ -51,97 +51,117 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Inject custom CSS for dark theme, cards, fonts, etc.
+# Custom CSS for a modern, sleek look
 st.markdown("""
 <style>
-    /* Import Google Font */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    /* Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
 
-    html, body, [class*="css"] {
+    * {
         font-family: 'Inter', sans-serif;
     }
 
-    /* Dark theme background */
+    /* Dark theme background with subtle gradient */
     .stApp {
-        background: #0E1117;
-        color: #FAFAFA;
+        background: linear-gradient(145deg, #0B0E14 0%, #1A1F2C 100%);
+        color: #F0F0F0;
     }
 
-    /* Sidebar styling */
+    /* Sidebar */
     .css-1d391kg {
-        background: #1E1E2E;
+        background: #1E1E2E !important;
+        border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .css-1d391kg .stMarkdown {
+        color: #E0E0E0;
     }
 
-    /* Custom card */
+    /* Custom card with glass effect */
     .glass-card {
-        background: rgba(30, 30, 46, 0.8);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
+        background: rgba(30, 30, 46, 0.7);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
         padding: 1.5rem;
         border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
-        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .glass-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 48px 0 rgba(0,255,200,0.2);
+        transform: translateY(-6px);
+        box-shadow: 0 30px 60px rgba(0,212,184,0.2);
+        border-color: rgba(0,212,184,0.3);
     }
 
-    /* Metric card */
+    /* Metric cards */
     .metric-card {
-        background: linear-gradient(145deg, #2A2A3A, #1A1A28);
-        border-radius: 16px;
-        padding: 1rem;
+        background: linear-gradient(135deg, #2A2A3A, #1E1E2E);
+        border-radius: 20px;
+        padding: 1.2rem 1rem;
         text-align: center;
-        border-left: 4px solid #00D4B8;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border-left: 6px solid #00D4B8;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        transition: all 0.3s;
+    }
+    .metric-card:hover {
+        border-left-width: 8px;
+        box-shadow: 0 12px 24px rgba(0,212,184,0.3);
     }
     .metric-label {
         color: #A0A0C0;
-        font-size: 0.9rem;
-        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        font-weight: 600;
     }
     .metric-value {
         color: #FFFFFF;
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: 700;
         line-height: 1.2;
+        font-family: 'JetBrains Mono', monospace;
     }
     .metric-unit {
         color: #00D4B8;
         font-size: 0.9rem;
+        font-weight: 400;
         margin-left: 4px;
     }
 
     /* Session banner */
     .session-banner {
-        padding: 1.5rem;
-        border-radius: 16px;
-        margin: 1rem 0;
-        font-weight: 700;
+        padding: 1.8rem;
+        border-radius: 40px;
+        margin: 1.5rem 0;
+        font-weight: 800;
         text-align: center;
-        font-size: 2rem;
-        letter-spacing: 2px;
+        font-size: 2.5rem;
+        letter-spacing: 3px;
         text-transform: uppercase;
-        background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(12px);
+        background: rgba(0,0,0,0.3);
+        backdrop-filter: blur(16px);
         border: 2px solid;
-        box-shadow: 0 0 30px rgba(0,255,200,0.3);
+        box-shadow: 0 0 40px currentColor;
+        animation: glowPulse 2s infinite alternate;
+    }
+    @keyframes glowPulse {
+        from { box-shadow: 0 0 20px currentColor; }
+        to { box-shadow: 0 0 60px currentColor; }
     }
     .session-calm {
         border-color: #2ECC71;
         color: #2ECC71;
-        text-shadow: 0 0 10px #2ECC71;
+        text-shadow: 0 0 15px #2ECC71;
     }
     .session-stress {
         border-color: #E74C3C;
         color: #E74C3C;
-        text-shadow: 0 0 10px #E74C3C;
+        text-shadow: 0 0 15px #E74C3C;
     }
     .session-mixed {
         border-color: #F39C12;
         color: #F39C12;
-        text-shadow: 0 0 10px #F39C12;
+        text-shadow: 0 0 15px #F39C12;
     }
 
     /* Download button */
@@ -149,48 +169,81 @@ st.markdown("""
         background: linear-gradient(90deg, #00D4B8, #009B8C) !important;
         color: white !important;
         border: none !important;
-        font-weight: 600 !important;
-        border-radius: 40px !important;
-        padding: 0.75rem 2rem !important;
-        box-shadow: 0 4px 20px rgba(0,212,184,0.4) !important;
+        font-weight: 700 !important;
+        border-radius: 60px !important;
+        padding: 0.9rem 2.5rem !important;
+        font-size: 1.1rem !important;
+        box-shadow: 0 10px 20px rgba(0,212,184,0.3) !important;
         transition: all 0.3s !important;
+        width: 100%;
     }
     .stDownloadButton button:hover {
-        transform: scale(1.02) !important;
-        box-shadow: 0 8px 30px rgba(0,212,184,0.6) !important;
+        transform: scale(1.03) !important;
+        box-shadow: 0 15px 30px rgba(0,212,184,0.5) !important;
     }
 
     /* Progress bar */
     .stProgress > div > div {
-        background: linear-gradient(90deg, #00D4B8, #009B8C) !important;
+        background: linear-gradient(90deg, #00D4B8, #2ECC71) !important;
+        border-radius: 20px;
     }
 
     /* Tooltips */
     .tooltip {
         position: relative;
         display: inline-block;
-        border-bottom: 1px dotted #00D4B8;
+        border-bottom: 1px dashed #00D4B8;
+        cursor: help;
     }
     .tooltip .tooltiptext {
         visibility: hidden;
-        width: 200px;
+        width: 220px;
         background: #2A2A3A;
         color: #fff;
         text-align: center;
-        border-radius: 8px;
-        padding: 8px;
+        border-radius: 12px;
+        padding: 10px;
         position: absolute;
-        z-index: 1;
-        bottom: 125%;
+        z-index: 1000;
+        bottom: 130%;
         left: 50%;
-        margin-left: -100px;
+        margin-left: -110px;
         opacity: 0;
         transition: opacity 0.3s;
         border: 1px solid #00D4B8;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     }
     .tooltip:hover .tooltiptext {
         visibility: visible;
         opacity: 1;
+    }
+
+    /* Dataframe styling */
+    .stDataFrame {
+        background: transparent !important;
+    }
+    .dataframe-container {
+        background: rgba(30,30,46,0.5);
+        border-radius: 20px;
+        padding: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        margin-top: 3rem;
+        padding: 1rem;
+        color: #6B6B8B;
+        font-size: 0.9rem;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .footer a {
+        color: #00D4B8;
+        text-decoration: none;
+    }
+    .footer a:hover {
+        text-decoration: underline;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -208,7 +261,7 @@ def load_artifacts(model_dir):
 # SIDEBAR
 # -------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("## 🧠 **EEG Analyzer**")
+    st.markdown("<h2 style='color: #00D4B8; font-weight: 700;'>🧠 EEG Analyzer</h2>", unsafe_allow_html=True)
     st.markdown("---")
 
     MODEL_DIR = "trained_api_models"
@@ -231,29 +284,33 @@ with st.sidebar:
 
     quantum_models = set(cfg.get("quantum_models", []))
 
+    st.markdown("<p style='color: #A0A0C0; margin-bottom: 0;'>🤖 Select Model</p>", unsafe_allow_html=True)
     selected_model_name = st.selectbox(
-        "🤖 Select Model",
+        "",
         options=list(available_models.keys()),
         format_func=lambda x: f"{x} ⚛️" if x in quantum_models else x,
+        label_visibility="collapsed"
     )
     model_path = available_models[selected_model_name]
 
+    st.markdown("<p style='color: #A0A0C0; margin-bottom: 0;'>📁 Upload EEG CSV</p>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
-        "📁 Upload EEG CSV",
+        "",
         type=["csv"],
         help=f"Required channels: {cfg['selected_channels']}",
+        label_visibility="collapsed"
     )
 
     run_pressed = st.button("🚀 **Run Analysis**", type="primary", use_container_width=True)
 
     st.markdown("---")
-    st.caption("✨ PART OF ULTIMATE MAHABHARAT❤️")
+    st.caption("PART OF ULTIMATE MAHABHARAT❤️")
 
 # -------------------------------------------------------------------
 # MAIN CONTENT
 # -------------------------------------------------------------------
-st.markdown("<h1 style='text-align: center; font-weight: 700;'>🧠 EEG Stress / Calm Analysis</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0C0;'>Upload a recording and let AI reveal your mental state.</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; font-weight: 700; font-size: 3rem; background: linear-gradient(90deg, #00D4B8, #2ECC71); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🧠 EEG Stress / Calm Analysis</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0C0; font-size: 1.2rem;'>Upload a recording and let AI reveal your mental state.</p>", unsafe_allow_html=True)
 
 if not uploaded_file:
     st.info("📂 **Start by uploading a CSV file** from the sidebar.")
@@ -282,7 +339,7 @@ try:
         st.stop()
 
     raw = df[cfg["selected_channels"]].values.astype(np.float32)
-    time.sleep(0.5)  # simulate work
+    time.sleep(0.5)
 
     # Step 2: Preprocess
     status_text.text("🔧 Preprocessing (filtering, scaling, feature extraction)...")
@@ -375,11 +432,12 @@ with col1:
         """, unsafe_allow_html=True
     )
 with col2:
+    total_time_formatted = fmt_time(duration['total_s'])
     st.markdown(
         f"""
         <div class="metric-card">
             <div class="metric-label">TOTAL TIME</div>
-            <div class="metric-value">{fmt_time(duration['total_s'])}<span class="metric-unit">min</span></div>
+            <div class="metric-value">{total_time_formatted}</div>
         </div>
         """, unsafe_allow_html=True
     )
@@ -420,16 +478,17 @@ with col_left:
         names=["Calm", "Stress"],
         values=[duration["calm_s"], duration["stress_s"]],
         color_discrete_sequence=["#2ECC71", "#E74C3C"],
-        hole=0.4,
+        hole=0.45,
     )
     fig_pie.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font_color='white',
-        showlegend=False,
-        margin=dict(t=30, b=0, l=0, r=0),
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        margin=dict(t=50, b=0, l=0, r=0),
     )
-    fig_pie.update_traces(textposition='inside', textinfo='percent+label', textfont_color='white')
+    fig_pie.update_traces(textposition='inside', textinfo='percent', textfont_color='white', marker=dict(line=dict(color='#1E1E2E', width=2)))
     st.plotly_chart(fig_pie, use_container_width=True)
 
 with col_right:
@@ -441,13 +500,17 @@ with col_right:
         marker_color=["#2ECC71", "#E74C3C"],
         text=[fmt_time(duration["calm_s"]), fmt_time(duration["stress_s"])],
         textposition='outside',
+        textfont=dict(color='white', size=14),
+        width=[0.6, 0.6],
     ))
     fig_bar.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font_color='white',
-        yaxis_title="Time (s)",
+        yaxis_title="Time (MM:SS)",
         margin=dict(t=30, b=0, l=0, r=0),
+        xaxis=dict(tickfont=dict(size=14)),
+        yaxis=dict(tickfont=dict(size=12)),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -486,7 +549,9 @@ if segments:
         xaxis_tickformat="%M:%S",
         hovermode="closest",
         margin=dict(t=30, b=0, l=0, r=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
     )
+    fig_gantt.update_traces(marker=dict(line=dict(width=0)))
     st.plotly_chart(fig_gantt, use_container_width=True)
 
 # ----- Peak periods -----
@@ -498,9 +563,9 @@ if peak_calm or peak_stress:
             st.markdown(
                 f"""
                 <div class="glass-card">
-                    <h4 style="color:#2ECC71;">😌 Calm Peak</h4>
-                    <p style="font-size:1.2rem;">{fmt_time(peak_calm['start_s'])} → {fmt_time(peak_calm['end_s'])}</p>
-                    <p>⏱️ {peak_calm['duration_s']:.1f} s  |  ✅ {peak_calm['consistency']*100:.1f}% consistent</p>
+                    <h4 style="color:#2ECC71; margin-bottom: 0.5rem;">😌 Calm Peak</h4>
+                    <p style="font-size:1.4rem; font-family: 'JetBrains Mono', monospace;">{fmt_time(peak_calm['start_s'])} → {fmt_time(peak_calm['end_s'])}</p>
+                    <p>⏱️ <strong>{peak_calm['duration_s']:.1f} s</strong>  |  ✅ Consistency: <strong>{peak_calm['consistency']*100:.1f}%</strong></p>
                 </div>
                 """, unsafe_allow_html=True
             )
@@ -509,9 +574,9 @@ if peak_calm or peak_stress:
             st.markdown(
                 f"""
                 <div class="glass-card">
-                    <h4 style="color:#E74C3C;">😰 Stress Peak</h4>
-                    <p style="font-size:1.2rem;">{fmt_time(peak_stress['start_s'])} → {fmt_time(peak_stress['end_s'])}</p>
-                    <p>⏱️ {peak_stress['duration_s']:.1f} s  |  ✅ {peak_stress['consistency']*100:.1f}% consistent</p>
+                    <h4 style="color:#E74C3C; margin-bottom: 0.5rem;">😰 Stress Peak</h4>
+                    <p style="font-size:1.4rem; font-family: 'JetBrains Mono', monospace;">{fmt_time(peak_stress['start_s'])} → {fmt_time(peak_stress['end_s'])}</p>
+                    <p>⏱️ <strong>{peak_stress['duration_s']:.1f} s</strong>  |  ✅ Consistency: <strong>{peak_stress['consistency']*100:.1f}%</strong></p>
                 </div>
                 """, unsafe_allow_html=True
             )
@@ -527,14 +592,15 @@ if segments:
 
     st.dataframe(
         df_display.style.applymap(
-            lambda x: 'color: #2ECC71' if x == 'CALM' else ('color: #E74C3C' if x == 'STRESS' else ''),
+            lambda x: 'color: #2ECC71; font-weight: 600;' if x == 'CALM' else ('color: #E74C3C; font-weight: 600;' if x == 'STRESS' else ''),
             subset=['State']
         ),
         use_container_width=True,
         hide_index=True,
         column_config={
             "Consistency (%)": st.column_config.ProgressColumn(
-                "Consistency (%)", format="%.1f%%", min_value=0, max_value=100
+                "Consistency (%)", format="%.1f%%", min_value=0, max_value=100,
+                width="medium"
             )
         }
     )
@@ -547,3 +613,10 @@ st.download_button(
     file_name=f"result_{Path(uploaded_file.name).stem}_{selected_model_name}.json",
     mime="application/json",
 )
+
+# ----- Footer -----
+st.markdown("""
+<div class="footer">
+    🧠 EEG Stress/Calm Analyzer · Built with Streamlit · <a href="#">GitHub</a> · v2.0
+</div>
+""", unsafe_allow_html=True)

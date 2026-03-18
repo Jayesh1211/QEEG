@@ -8,7 +8,7 @@ tensorflow
 xgboost
 lightgbm
 qiskit==1.4.5
-qiskit-machine-learning==0.8.0
+qiskit-machine-learning==0.8.4
 pennylane
 torch
 plotly

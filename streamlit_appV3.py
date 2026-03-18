@@ -554,7 +554,7 @@ for tab, (model_name, result) in zip(model_tabs[:-1], all_results.items()):
             )
 
 # -------------------------------------------------------------------
-# COMPARISON TAB (with model toggles)
+# COMPARISON TAB (with model checkboxes)
 # -------------------------------------------------------------------
 with model_tabs[-1]:
     st.markdown("## 🔍 Model Comparison")
@@ -576,60 +576,61 @@ with model_tabs[-1]:
     comp_df = pd.DataFrame(comp_data)
     st.dataframe(comp_df, use_container_width=True, hide_index=True)
 
-    # Overlay stress intensity plot with model toggles
+    # Overlay stress intensity plot with model checkboxes
     if len(all_dfs) > 1:
         st.markdown("### 📈 Stress Intensity Overlay")
 
-        # Multi‑select widget for model selection
+        # Create a horizontal layout of checkboxes
         model_names = list(all_dfs.keys())
-        selected_models = st.multiselect(
-            "Select models to display",
-            options=model_names,
-            default=model_names,
-            key="overlay_model_select"
-        )
+        cols = st.columns(len(model_names))
+        selected_models = []
+        for i, model_name in enumerate(model_names):
+            with cols[i]:
+                # Each checkbox returns True if checked
+                if st.checkbox(model_name, value=True, key=f"chk_{model_name}"):
+                    selected_models.append(model_name)
 
         if selected_models:
-            # Build traces for selected models
+            # Define a color palette (Plotly default + extra)
+            colors = px.colors.qualitative.Plotly + px.colors.qualitative.Light24
             traces = []
-            for model_name in selected_models:
+            for idx, model_name in enumerate(selected_models):
                 df_proc = _build_intensity_series(all_dfs[model_name], cfg["step_size"], cfg["fs"])
                 traces.append(go.Scatter(
                     x=df_proc["Time_Minutes"],
                     y=df_proc["Stress_Intensity"],
                     mode='lines',
                     name=model_name,
-                    line=dict(width=2)
+                    line=dict(color=colors[idx % len(colors)], width=2)
                 ))
 
-            # Add threshold line (use the last processed df for max time)
-            if traces:
-                max_time = df_proc["Time_Minutes"].max()
-                traces.append(go.Scatter(
-                    x=[0, max_time],
-                    y=[50, 50],
-                    mode='lines',
-                    name='Threshold (50%)',
-                    line=dict(color='gray', dash='dash', width=1)
-                ))
+            # Add threshold line
+            max_time = df_proc["Time_Minutes"].max()
+            traces.append(go.Scatter(
+                x=[0, max_time],
+                y=[50, 50],
+                mode='lines',
+                name='Threshold (50%)',
+                line=dict(color='gray', dash='dash', width=1)
+            ))
 
-                fig_overlay = go.Figure(data=traces)
-                fig_overlay.update_layout(
-                    title="Stress Intensity – Selected Models",
-                    xaxis_title="Time (Minutes)",
-                    yaxis_title="Stress Probability (%)",
-                    yaxis=dict(range=[0, 105]),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font_color='white',
-                    hovermode='x unified',
-                    margin=dict(t=50, b=0, l=0, r=0),
-                )
-                st.plotly_chart(fig_overlay, use_container_width=True)
+            fig_overlay = go.Figure(data=traces)
+            fig_overlay.update_layout(
+                title="Stress Intensity – Selected Models",
+                xaxis_title="Time (Minutes)",
+                yaxis_title="Stress Probability (%)",
+                yaxis=dict(range=[0, 105]),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color='white',
+                hovermode='x unified',
+                margin=dict(t=50, b=0, l=0, r=0),
+            )
+            st.plotly_chart(fig_overlay, use_container_width=True)
         else:
             st.info("Select at least one model to display the overlay plot.")
     else:
-        # If only one model, just show its intensity plot again (optional)
+        # If only one model, just show its intensity plot
         st.markdown("### 📈 Stress Intensity (only one model selected)")
         single_model = list(all_dfs.keys())[0]
         df_proc = _build_intensity_series(all_dfs[single_model], cfg["step_size"], cfg["fs"])
